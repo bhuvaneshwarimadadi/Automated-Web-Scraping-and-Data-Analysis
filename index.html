@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Data Visualizations</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+</head>
+<body>
+    <h1>Book Data Visualizations</h1>
+
+    <h2>Data Table</h2>
+    <table id="bookTable" border="1">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Author</th>
+                <th>Price</th>
+                <th>Type</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- Data will be inserted here dynamically -->
+        </tbody>
+    </table>
+
+    <h2>Price Distribution</h2>
+    <canvas id="priceDistribution"></canvas>
+
+    <h2>Book Type Distribution (Stacked Bar Chart)</h2>
+    <canvas id="typeDistribution"></canvas>
+
+    <h2>Book Type Distribution (Pie Chart)</h2>
+    <canvas id="pieChart" width="400" height="400"></canvas> <!-- Adjusted size -->
+
+    <script>
+        // Fetch data from API
+        $.getJSON('/api/books', function(data) {
+            // Fill Table with Data
+            const tableBody = $('#tableBody');
+            data.forEach(function(book) {
+                tableBody.append(`
+                    <tr>
+                        <td>${book.name}</td>
+                        <td>${book.Author}</td>
+                        <td>${book.Price}</td>
+                        <td>${book.Type}</td>
+                        <td>${book.TimeStamp}</td>
+                    </tr>
+                `);
+            });
+
+            // Price Distribution Bar Chart
+            const priceDistributionCtx = document.getElementById('priceDistribution').getContext('2d');
+            const priceDistributionChart = new Chart(priceDistributionCtx, {
+                type: 'bar',
+                data: {
+                    labels: [...new Set(data.map(book => book.Price))], // unique price values
+                    datasets: [{
+                        label: 'Price Distribution',
+                        data: data.reduce((acc, book) => {
+                            acc[book.Price] = (acc[book.Price] || 0) + 1;
+                            return acc;
+                        }, {}),
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(75, 192, 192, 0.6)',
+                            'rgba(153, 102, 255, 0.6)',
+                            'rgba(255, 159, 64, 0.6)',
+                            'rgba(255, 99, 132, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)',
+                            'rgba(255, 99, 132, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Price' } },
+                        y: { title: { display: true, text: 'Count' } }
+                    }
+                }
+            });
+
+            // Book Type Distribution (Stacked Bar Chart)
+            const typeDistributionCtx = document.getElementById('typeDistribution').getContext('2d');
+            const typeDistributionData = data.reduce((acc, book) => {
+                if (!acc[book.Type]) acc[book.Type] = 0;
+                acc[book.Type]++;
+                return acc;
+            }, {});
+
+            const typeDistributionChart = new Chart(typeDistributionCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(typeDistributionData),
+                    datasets: [{
+                        label: 'Book Type Distribution',
+                        data: Object.values(typeDistributionData),
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Book Type' } },
+                        y: { title: { display: true, text: 'Count' } }
+                    }
+                }
+            });
+
+            // Book Type Distribution (Pie Chart)
+            const pieChartCtx = document.getElementById('pieChart').getContext('2d');
+            const pieChartData = Object.entries(typeDistributionData).map(([type, count]) => ({
+                label: type,
+                value: count
+            }));
+
+            const pieChart = new Chart(pieChartCtx, {
+                type: 'pie',
+                data: {
+                    labels: pieChartData.map(item => item.label),
+                    datasets: [{
+                        data: pieChartData.map(item => item.value),
+                        backgroundColor: ['rgba(54, 162, 235, 0.6)', 'rgba(75, 192, 192, 0.6)', 'rgba(153, 102, 255, 0.6)', 'rgba(255, 159, 64, 0.6)', 'rgba(255, 99, 132, 0.6)'],
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        });
+    </script>
+</body>
+</html>
